@@ -65,6 +65,7 @@ void loop() {
   if(clockMode == 0)
   {
     displayTime();
+    displayLED();
     enterMode();
   }
   else if(clockMode ==1)
@@ -97,6 +98,4 @@ void displayTime()
     Serial.println(seconds);
     previousSecond = currentSecondInt;
   }
-  displayLED();
-
 }
