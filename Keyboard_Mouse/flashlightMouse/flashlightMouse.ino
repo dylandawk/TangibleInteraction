@@ -71,9 +71,7 @@ void handleLED() {
     }
   } else {
     RGB_color(0, 0, 0);
-    for (int i = 0; i < NUMPIXELS; i++) { // For each pixel...
-      pixels.setPixelColor(i, pixels.Color(0, 0, 0));
-    }
+    pixels.fill(0,0,0);
   }
   pixels.show();
 }
