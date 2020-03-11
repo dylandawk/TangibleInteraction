@@ -1,4 +1,5 @@
 #include <bt_cms.h>
+#include <Mouse.h>
 
 #define LED 2
 #define SBAUD 115200
@@ -12,7 +13,7 @@ void setup() {
   Serial.begin(SBAUD);
 
   //Waits for a serial connection to be established
-  while(!Serial);
+  //while(!Serial);
   
   Serial.println("Connected!");
 
@@ -89,10 +90,16 @@ void receiveMessages(BLEDevice peripheral){
     imuVals.readValue((void *)vals, FLTXBUFLEN);
     
     //display BT values
-    viewData();
-    
+    //    viewData();
+
+    //GZ == YAW
+    //GY == PITCH
+    //GX == ROLL
+    Mouse.move(-vals[GZ], -vals[GY], 0);
+
     //Conform to an acceptable transmission rate
     delay(15);
+
   }
 
   digitalWrite(LED, LOW);
