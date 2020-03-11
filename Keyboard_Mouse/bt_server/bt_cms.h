@@ -17,7 +17,8 @@ typedef enum{
 	     AZ,
 	     GX,
 	     GY,
-	     GZ
+	     GZ,
+	     VALEND
 }sensVals_e;
 
 

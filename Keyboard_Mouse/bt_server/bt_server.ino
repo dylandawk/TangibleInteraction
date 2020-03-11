@@ -70,7 +70,7 @@ int discoverBTAttribs(){
 void viewData(){
 
   int i;
-  for(i = AX; i <= GZ; ++i){
+  for(i = AX; i < VALEND; ++i){
     Serial.print(vals[i]);Serial.print('\t');
   }
 

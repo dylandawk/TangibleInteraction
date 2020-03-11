@@ -1,4 +1,4 @@
-//SENSOR DEFINITIONS
+//Sensor DEFINITIONS
 float gx,gy,gz,ax,ay,az;
 
 //Initial gyro values
@@ -25,7 +25,7 @@ void readGyro() {
   if (IMU.gyroscopeAvailable()) {
     IMU.readGyroscope(gx, gy, gz);
 
-    //recalibrate incoming data;
+    //Formatting for bluetooth transmission
     vals[GX] = (int16_t)(round(gx) + offset_gx);
     vals[GY] = (int16_t)(round(gy) + offset_gy);
     vals[GZ] = (int16_t)(round(gz) + offset_gz);
@@ -39,9 +39,12 @@ void readAccel() {
 
   if (IMU.accelerationAvailable()) {
     IMU.readAcceleration(ax, ay, az);
+
+   
     vals[AX] = (int16_t)map((int)(ax * 100), -100, 100, 0, 255);
     vals[AY] = (int16_t)map((int)(ay * 100), -100, 100, 0, 255);
     vals[AZ] = (int16_t)map((int)(az * 100), -100, 100, 0, 255);
+    
   }
   
 }
