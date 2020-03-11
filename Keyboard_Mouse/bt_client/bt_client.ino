@@ -2,6 +2,7 @@
 #include <Arduino_LSM6DS3.h>
 #include <Adafruit_NeoPixel.h>
 
+#define SBAUD 115200
 #define LIGHT 3
 #define PUSH_PIN 8
 #define PIXEL_PIN 2
@@ -47,17 +48,11 @@ void btSetup(){
   //Select the service to advertise
   BLE.setAdvertisedService(flService);
 
-
-  Serial.println("Addeding");
   //Attach features to the advertised service
-  flService.addCharacteristic(imuVals);//accelerometer values
-  //commSertice.addCharacteristic(respVals);//response from central
+  flService.addCharacteristic(imuVals);
 
   //Add the service to the device
   BLE.addService(flService);
-
-  //Write a start message to the central device
-  imuVals.writeValue("READY TO GO ");
 
   //Advertise the service
   BLE.advertise();
@@ -82,21 +77,20 @@ void flSetup(){
 void setup() {
 
   pinMode(LIGHT, OUTPUT);
-  Serial.begin(115200);
-  //while(!Serial);
-  Serial.println("Connected!");
+  Serial.begin(SBAUD);
 
   btSetup();
-
   Serial.println("BT SETUP!");
+  
   flSetup();
   Serial.println("FL SETUP!");
+  
   Serial.println("Ready to begin!");
 }
 
 void viewData(){
   int i;
-  for(i = AX; i <= GZ; ++i){
+  for(i = AX; i < VALEND; ++i){
     Serial.print(vals[i]);Serial.print('\t');
   }
 
@@ -118,12 +112,9 @@ void loop() {
     central = BLE.central();
   } while (!central);
 
-
   
-  if (central) {
-    Serial.print("Connected to central: ");
-    Serial.println(central.address());
-  }
+  Serial.print("Connected to central: ");
+  Serial.println(central.address());
 
 
   while (central.connected()) {
