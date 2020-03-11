@@ -19,7 +19,7 @@ int r, g, b;
 BLEService flService(FLSID);
 BLEDevice central;
 //Defines a characterisitc (feature) for a certain service
-BLECharacteristic accelVals(FLSID, BLERead | BLEWrite, FLTXBUFLEN, true);
+BLECharacteristic imuVals(FLSID, BLERead | BLEWrite, FLTXBUFLEN, true);
 //BLEStringCharacteristic respVals(FLSID, BLERead | BLEWrite, FLTXBUFLEN);
 
 
@@ -50,14 +50,14 @@ void btSetup(){
 
   Serial.println("Addeding");
   //Attach features to the advertised service
-  flService.addCharacteristic(accelVals);//accelerometer values
+  flService.addCharacteristic(imuVals);//accelerometer values
   //commSertice.addCharacteristic(respVals);//response from central
 
   //Add the service to the device
   BLE.addService(flService);
 
   //Write a start message to the central device
-  accelVals.writeValue("READY TO GO ");
+  imuVals.writeValue("READY TO GO ");
 
   //Advertise the service
   BLE.advertise();
@@ -132,7 +132,7 @@ void loop() {
     handleLED();
 
     //Write values to be sent over bluetooth
-    accelVals.writeValue((void *)vals, FLTXBUFLEN);
+    imuVals.writeValue((void *)vals, FLTXBUFLEN);
 
     //Conform to an acceptable transmisison rate
     delay(15);

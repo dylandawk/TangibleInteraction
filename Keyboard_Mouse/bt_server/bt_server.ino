@@ -5,7 +5,7 @@
 
 
 BLEDevice peripheral;
-BLECharacteristic accelVals;
+BLECharacteristic imuVals;
 
 void setup() {
   pinMode(LED, OUTPUT);
@@ -52,14 +52,14 @@ int discoverBTAttribs(){
     Serial.println("Attributes Discovered!");
   }
 
-  accelVals = peripheral.characteristic(FLSID);
+  imuVals = peripheral.characteristic(FLSID);
 
-  if(!accelVals){
+  if(!imuVals){
     Serial.println("Not working!!!");
     return 1;
   }
 
-  if(!accelVals.canRead()){
+  if(!imuVals.canRead()){
     Serial.println("No READING!\n");
     return 1;
   }
@@ -86,7 +86,7 @@ void receiveMessages(BLEDevice peripheral){
   while(peripheral.connected()){
 
     //read BT values
-    accelVals.readValue((void *)vals, FLTXBUFLEN);
+    imuVals.readValue((void *)vals, FLTXBUFLEN);
     
     //display BT values
     viewData();
