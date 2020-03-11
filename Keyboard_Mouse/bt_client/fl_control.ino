@@ -1,8 +1,16 @@
+//SENSOR DEFINITIONS
+float gx,gy,gz,ax,ay,az;
+
+//Initial gyro values
+const int  offset_gx = 1; //IMU at resting for gyroscope gives value of -1 for x (this isn't used in code)
+const int  offset_gy = 4; //IMU at resting for gyroscope gives value of -4 for y
+const int offset_gz = 2; //IMU at resting for gyroscope gives value of -2 for z
+
 //turns on LED when button is pressed, turns of when released
 void handleLED() {
   if (isPushPressed) {
     for (int i = 0; i < NUMPIXELS; i++) { // For each pixel...
-      pixels.setPixelColor(i, r, g, b);
+      pixels.setPixelColor(i, vals[AX], vals[AY], vals[AZ]);
     }
   } else {
     pixels.fill(0,0,0);
@@ -11,53 +19,33 @@ void handleLED() {
 }
 
 
-//control pixel color with accelerometer values
-void handlePixel(float x, float y, float z) {
-  int x_scaled = x * 100;
-  int y_scaled = y * 100;
-  int z_scaled = z * 100;
-  r = map(x_scaled, -100, 100, 0, 255);
-  g = map(y_scaled, -100, 100, 0, 255);
-  b = map(z_scaled, -100, 100, 0, 255);
-  //  Serial.print(x); Serial.print('\t');
-  //  Serial.print(y); Serial.print('\t');
-  //  Serial.println(z);
-}
-
 //read gyroscope values
 void readGyro() {
-  float x, y, z;
 
   if (IMU.gyroscopeAvailable()) {
-    IMU.readGyroscope(x, y, z);
+    IMU.readGyroscope(gx, gy, gz);
 
     //recalibrate incoming data;
-    int x_avg = round(x) + offset_gx;
-    int y_avg = round(y) + offset_gy;
-    int z_avg = round(z) + offset_gz;
+    vals[GX] = (int16_t)(round(gx) + offset_gx);
+    vals[GY] = (int16_t)(round(gy) + offset_gy);
+    vals[GZ] = (int16_t)(round(gz) + offset_gz);
 
-    if (hasMouseBegun) {
-      moveMouse(x_avg, y_avg, z_avg);
-    }
-    //        Serial.print(x_avg); Serial.print('\t');
-    //        Serial.print(y_avg); Serial.print('\t');
-    //        Serial.println(z_avg);
   }
+  
 }
 
 //read accelerometer values
 void readAccel() {
-  float x, y, z;
 
   if (IMU.accelerationAvailable()) {
-    IMU.readAcceleration(x, y, z);
-    handlePixel(x, y, z);
-
-    //    Serial.print(x); Serial.print('\t');
-    //    Serial.print(y); Serial.print('\t');
-    //    Serial.println(z);
+    IMU.readAcceleration(ax, ay, az);
+    vals[AX] = (int16_t)map((int)(ax * 100), -100, 100, 0, 255);
+    vals[AY] = (int16_t)map((int)(ay * 100), -100, 100, 0, 255);
+    vals[AZ] = (int16_t)map((int)(az * 100), -100, 100, 0, 255);
   }
+  
 }
+
 
 //original debounce code from https://www.arduino.cc/en/tutorial/debounce
 //Essentially prevents accidental multi-registering of button clicks

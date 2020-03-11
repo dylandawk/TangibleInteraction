@@ -6,10 +6,8 @@
 
 BLEDevice peripheral;
 BLECharacteristic accelVals;
-int waiting;
 
 void setup() {
-  waiting = 0;
   pinMode(LED, OUTPUT);
   Serial.begin(SBAUD);
 
@@ -23,77 +21,81 @@ void setup() {
 
   //Defined in cms/bt_cms.h
   BLE.scanForUuid(FLSID);
-  Serial.println("Waiting for periph!");
 }
 
 void loop() {
+  
+  Serial.println("Waiting for periph!");
+  do{
+    peripheral = BLE.available();
+  }while(!peripheral);
 
-  peripheral = BLE.available();
 
-  if(peripheral){
-
-    Serial.println("CONNECTED TO PERIPHERAL\n");
-    digitalWrite(LED, HIGH);
-
-    BLE.stopScan();
-
-    handleData(peripheral);
-
-    BLE.scanForUuid(FLSID);
+  Serial.println("CONNECTED TO PERIPHERAL\n");
+  digitalWrite(LED, HIGH);
+  BLE.stopScan();
+    
+  //If we can not discover attributes, scan again
+  if(!discoverBTAttribs()){
+    receiveMessages(peripheral);
   }
+
+  BLE.scanForUuid(FLSID);
 }
 
-
-
-void handleData(BLEDevice peripheral){
-
-
-  if(peripheral.connect()){
-    Serial.println("Connected");
-    
+int discoverBTAttribs(){
+ if(peripheral.connect()){
+    Serial.println("Connected");    
   }
 
   if(peripheral.discoverAttributes()){
-
     Serial.println("Attributes Discovered!");
-
   }
 
   accelVals = peripheral.characteristic(FLSID);
 
   if(!accelVals){
     Serial.println("Not working!!!");
-    return;
+    return 1;
   }
 
-  if(!accelVals.canWrite()){
-    Serial.println("No writing!\n");
-    return;
+  if(!accelVals.canRead()){
+    Serial.println("No READING!\n");
+    return 1;
   }
+
+  return 0;
+}
+
+void viewData(){
+
+  int i;
+  for(i = AX; i <= GZ; ++i){
+    Serial.print(vals[i]);Serial.print('\t');
+  }
+
+  Serial.println();
+    
+}
+
+void receiveMessages(BLEDevice peripheral){
+
+
+  Serial.println("Beginning reading!");
 
   while(peripheral.connected()){
-    
-    if(!waiting){
-      strcpy(STRBUF, ONSTR);
-      accelVals.writeValue(STRBUF);
-      waiting = 1;
-      digitalWrite(LED, LOW);
-      delay(2000);
-    }
 
-    if(waiting == 1){
-      
-      accelVals.readValue(STRBUF, FLSTRBUFLEN);
-      if(!strcmp(STRBUF, ACKSTR)){
-	digitalWrite(LED, HIGH);
-	Serial.println("TURNED ON!");
-	waiting = 2;
-      }
-    }
+    //read BT values
+    accelVals.readValue((void *)vals, FLTXBUFLEN);
+    
+    //display BT values
+    viewData();
+    
+    //Conform to an acceptable transmission rate
+    delay(15);
   }
 
   digitalWrite(LED, LOW);
   Serial.println("Turned off!");
-  waiting = 0;
-  Serial.println("Waiting for periph!");
+
 }

@@ -7,16 +7,23 @@
 #define PIXEL_PIN 2
 #define NUMPIXELS 1
 
+//NEOPIXEL DEFINITIONS
 //Define Neopixel pixel
 Adafruit_NeoPixel pixels(NUMPIXELS, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
+int pixel_hue = 0;
+int r, g, b;
 
+
+//BLUETOOTH DEFINITIONS
 //Advertise a new service with a unique ID
 BLEService flService(FLSID);
 BLEDevice central;
 //Defines a characterisitc (feature) for a certain service
-BLEStringCharacteristic accelVals(FLSID, BLERead | BLEWrite, FLSTRBUFLEN);
-//BLEStringCharacteristic respVals(FLSID, BLERead | BLEWrite, FLSTRBUFLEN);
+BLECharacteristic accelVals(FLSID, BLERead | BLEWrite, FLTXBUFLEN, true);
+//BLEStringCharacteristic respVals(FLSID, BLERead | BLEWrite, FLTXBUFLEN);
 
+
+//FLASHLIGHT DEFINITIONS
 //define button states
 int currentState;
 int previousState = LOW;
@@ -25,22 +32,8 @@ bool isPushPressed, hasMouseBegun;
 unsigned long lastDebounceTime = 0;
 const unsigned long debounceDelay = 50;//
 
-const int  offset_gx = 1; //IMU at resting for gyroscope gives value of -1 for x (this isn't used in code)
-const int  offset_gy = 4; //IMU at resting for gyroscope gives value of -4 for y
-const int offset_gz = 2; //IMU at resting for gyroscope gives value of -2 for z
 
-//define
-int pixel_hue = 0;
-int r, g, b;
-
-
-void setup() {
-
-  pinMode(LIGHT, OUTPUT);
-  Serial.begin(115200);
-  //while(!Serial);
-  Serial.println("Connected!");
-
+void btSetup(){
   //If the bluetooth service is not beginning, hang
   if (!BLE.begin()) {
     Serial.println("starting BLE failed!");
@@ -68,7 +61,10 @@ void setup() {
 
   //Advertise the service
   BLE.advertise();
+}
 
+
+void flSetup(){
   //Initialize Accelerometer/Gyroscope
   if (!IMU.begin()) {
     Serial.println("Failed to initialize IMU!");
@@ -79,52 +75,70 @@ void setup() {
   pinMode(PUSH_PIN, INPUT_PULLUP);
   //Initialize pixel
   pixels.begin();
+  
 
+}
+
+void setup() {
+
+  pinMode(LIGHT, OUTPUT);
+  Serial.begin(115200);
+  //while(!Serial);
+  Serial.println("Connected!");
+
+  btSetup();
+
+  Serial.println("BT SETUP!");
+  flSetup();
+  Serial.println("FL SETUP!");
   Serial.println("Ready to begin!");
+}
+
+void viewData(){
+  int i;
+  for(i = AX; i <= GZ; ++i){
+    Serial.print(vals[i]);Serial.print('\t');
+  }
+
+  Serial.println();
+}
+
+
+void readSensors(){
+  readGyro();
+  readAccel();
+  readPushButton();
 }
 
 void loop() {
 
   //Attempt too connect with the central device
-  //Hangs until connection
+  //Polls until connection
   do {
     central = BLE.central();
   } while (!central);
 
-  digitalWrite(LIGHT, LOW);
 
+  
   if (central) {
     Serial.print("Connected to central: ");
     Serial.println(central.address());
   }
 
+
   while (central.connected()) {
 
-    //If a message has been written
-    if (accelVals.written()) {
-      accelVals.readValue(STRBUF, FLSTRBUFLEN);
+    readSensors();
+    handleLED();
 
-      //adds code that activates when connected
-      readGyro();
-      readAccel();
-      readPushButton();
-      handleLED();
+    //Write values to be sent over bluetooth
+    accelVals.writeValue((void *)vals, FLTXBUFLEN);
 
-      //Is the ON String
-      if (!strcmp(STRBUF, ONSTR)) {
-        Serial.println("IN!");
-        digitalWrite(LIGHT, HIGH);
-        strcpy(STRBUF, ACKSTR);
-        accelVals.writeValue(STRBUF);
-        continue;
-      }
-
-
-    }
-
+    //Conform to an acceptable transmisison rate
+    delay(15);
   }
 
-  digitalWrite(LIGHT, LOW);
+
   Serial.print("Disconnected from: ");
   Serial.println(central.address());
 
