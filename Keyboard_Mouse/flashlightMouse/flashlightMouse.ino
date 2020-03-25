@@ -1,8 +1,7 @@
 #include <Arduino_LSM6DS3.h>
 #include <Mouse.h>
-#include <ArduinoBLE.h>
 #include <Adafruit_NeoPixel.h>
-//#include <SerialCommand.h>
+#include <bt_cms.h>
 
 #define RED_PIN 3
 #define GREEN_PIN 5
@@ -11,20 +10,25 @@
 #define PIXEL_PIN 2
 #define NUMPIXELS 1
 
-//SerialCommand scmd;
-
 Adafruit_NeoPixel pixels(NUMPIXELS, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 
 int currentState;
 int previousState = LOW;
 bool isPushPressed, hasMouseBegun;
 
+//checkPressesDef
+int previousPressed = 0;
+bool hasTimeoutStarted;
+
 unsigned long lastDebounceTime = 0;
 unsigned long debounceDelay = 50;//
 
+//Sensor DEFINITIONS
+float gx, gy, gz, ax, ay, az;
+
 const int  offset_gx = 1; //IMU at resting for gyroscope gives value of -1 for x (this isn't used in code)
-const int  offset_gy = 4; //IMU at resting for gyroscope gives value of -4 for y
-const int offset_gz = 2; //IMU at resting for gyroscope gives value of -2 for z
+const int  offset_gy = 3; //IMU at resting for gyroscope gives value of -4 for y
+const int offset_gz = 0; //IMU at resting for gyroscope gives value of -2 for z
 
 int pixel_hue = 0;
 int r, g, b;
@@ -54,11 +58,12 @@ void setup() {
 }
 
 void loop() {
-  //pixels.clear();
   readGyro();
   readAccel();
   readPushButton();
+  checkPresses();
   handleLED();
+  //viewData();
 
 }
 
@@ -67,11 +72,12 @@ void handleLED() {
   if (isPushPressed) {
     RGB_color(0, 0, 255); // if using RGB led
     for (int i = 0; i < NUMPIXELS; i++) { // For each pixel...
-      pixels.setPixelColor(i, r, g, b);
+      //pixels.setPixelColor(i, r, g, b);
+      pixels.setPixelColor(i, 0, 0, 100);
     }
   } else {
     RGB_color(0, 0, 0);
-    pixels.fill(0,0,0);
+    pixels.fill(0, 0, 0);
   }
   pixels.show();
 }
@@ -100,33 +106,39 @@ void readGyro() {
   float x, y, z;
 
   if (IMU.gyroscopeAvailable()) {
-    IMU.readGyroscope(x, y, z);
+    IMU.readGyroscope(gx, gy, gz);
 
-    //recalibrate incoming data;
-    int x_avg = round(x) + offset_gx;
-    int y_avg = round(y) + offset_gy;
-    int z_avg = round(z) + offset_gz;
+    //Formatting for bluetooth transmission
+    vals[GX] = (int16_t)(round(gx) + offset_gx);
+    vals[GY] = (int16_t)(round(gy) + offset_gy);
+    vals[GZ] = (int16_t)(round(gz) + offset_gz);
 
-    if (hasMouseBegun) {
-      moveMouse(x_avg, y_avg, z_avg);
-    }
-    //        Serial.print(x_avg); Serial.print('\t');
-    //        Serial.print(y_avg); Serial.print('\t');
-    //        Serial.println(z_avg);
+  }
+  if (hasMouseBegun) {
+    moveMouse(vals[GX], vals[GY], vals[GZ]);
   }
 }
 
+void viewData() {
+  int i;
+  for (i = AX; i < VALEND; ++i) {
+    Serial.print(vals[i]); Serial.print('\t');
+  }
+
+  Serial.println();
+
+}
+
+
 void readAccel() {
 
-  float x, y, z;
-
   if (IMU.accelerationAvailable()) {
-    IMU.readAcceleration(x, y, z);
-    handlePixel(x, y, z);
+    IMU.readAcceleration(ax, ay, az);
 
-    //    Serial.print(x); Serial.print('\t');
-    //    Serial.print(y); Serial.print('\t');
-    //    Serial.println(z);
+    vals[AX] = (int16_t)map((int)(ax * 100), -100, 100, 0, 255);
+    vals[AY] = (int16_t)map((int)(ay * 100), -100, 100, 0, 255);
+    vals[AZ] = (int16_t)map((int)(az * 100), -100, 100, 0, 255);
+
   }
 }
 
@@ -143,15 +155,13 @@ void readPushButton() {
       if (currentState == LOW) {
         /*Execute code when button pressed here*/
         Serial.println("ON");
-        Mouse.begin();
-        hasMouseBegun = true;
+        vals[BS] = (int16_t)ON;
         pixels.show();   // Send the updated pixel colors to the hardware.
       }
       else if (currentState == HIGH) {
         /*Execute code when button released here*/
         Serial.println("OFF");
-        Mouse.end();
-        hasMouseBegun = false;
+        vals[BS] = (int16_t)OFF;
         pixels.show();   // Send the updated pixel colors to the hardware.
       }
     }
@@ -161,12 +171,46 @@ void readPushButton() {
   previousState = reading;
 }
 
+int startTime, counter;
+void checkPresses() {
+  int currentPressed = vals[BS];
+  int buttonDelay = 500;
+  if (currentPressed != previousPressed) {
+    Serial.println("mousePressed");
+    if (hasMouseBegun) {
+      Mouse.click();
+    }
+    if (!hasTimeoutStarted) {
+      startTime = millis();
+      counter = 0;
+      hasTimeoutStarted = true;
+    } else if (millis() - startTime <= buttonDelay) {
+      if (hasMouseBegun) {
+        Mouse.end();
+        hasMouseBegun = false;
+        Serial.println("Mouse ended");
+        Serial.println(millis() - startTime);
+      } else {
+        Mouse.begin();
+        hasMouseBegun = true;
+        Serial.println("Mouse Begun");
+        Serial.println(millis() - startTime);
+      }
+      hasTimeoutStarted = false;
+      //Serial.println(millis()-startTime);
+    }
+  }
+  if (millis() - startTime >= buttonDelay) {
+    hasTimeoutStarted = false;
+    //    Serial.println(counter++);
+  }
+
+  previousPressed = currentPressed;
+}
+
 //handles changing mouse movement, this is to be moved to CENTRAL BLE
 void moveMouse(int gx, int gy, int gz) {
-  float scale_y = -0.5;//flip axis and scale movement
-  float scale_z = -0.5;//flip axis and scale movement
-
-  float vy = scale_y * gy;
-  float vx = scale_z * gz; //uses gyroscope z as mouse x-axis
-  Mouse.move(vx, vy);
+  float scaled_y = gy * (-0.25);
+  float scaled_x = gz * (-0.25);
+  Mouse.move(scaled_x, scaled_y);
 }

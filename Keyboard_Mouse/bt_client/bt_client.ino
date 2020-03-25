@@ -3,7 +3,7 @@
 #include <Adafruit_NeoPixel.h>
 
 #define SBAUD 115200
-#define LIGHT 3
+#define LIGHT 13
 #define PUSH_PIN 8
 #define PIXEL_PIN 2
 #define NUMPIXELS 1
@@ -37,7 +37,7 @@ const unsigned long debounceDelay = 50;//
 void btSetup(){
   //If the bluetooth service is not beginning, hang
   if (!BLE.begin()) {
-    Serial.println("starting BLE failed!");
+//    Serial.println("starting BLE failed!");
 
     while (1);
   }
@@ -62,7 +62,7 @@ void btSetup(){
 void flSetup(){
   //Initialize Accelerometer/Gyroscope
   if (!IMU.begin()) {
-    Serial.println("Failed to initialize IMU!");
+//    Serial.println("Failed to initialize IMU!");
     while (1);
   }
 
@@ -70,6 +70,8 @@ void flSetup(){
   pinMode(PUSH_PIN, INPUT_PULLUP);
   //Initialize pixel
   pixels.begin();
+  pixels.show();            // Turn OFF all pixels ASAP
+  pixels.setBrightness(50); // Set BRIGHTNESS to about 1/5 (max = 255)
   
 
 }
@@ -77,24 +79,26 @@ void flSetup(){
 void setup() {
 
   pinMode(LIGHT, OUTPUT);
-  Serial.begin(SBAUD);
+//  Serial.begin(SBAUD);
+
+  //while(!Serial);
 
   btSetup();
-  Serial.println("BT SETUP!");
+//  Serial.println("BT SETUP!");
   
   flSetup();
-  Serial.println("FL SETUP!");
+//  Serial.println("FL SETUP!");
   
-  Serial.println("Ready to begin!");
+//  Serial.println("Ready to begin!");
 }
 
 void viewData(){
   int i;
   for(i = AX; i < VALEND; ++i){
-    Serial.print(vals[i]);Serial.print('\t');
+//    Serial.print(vals[i]);Serial.print('\t');
   }
 
-  Serial.println();
+//  Serial.println();
 }
 
 
@@ -110,11 +114,12 @@ void loop() {
   //Polls until connection
   do {
     central = BLE.central();
+    blinkLED();
   } while (!central);
 
   
-  Serial.print("Connected to central: ");
-  Serial.println(central.address());
+//  Serial.print("Connected to central: ");
+//  Serial.println(central.address());
 
 
   while (central.connected()) {
@@ -130,7 +135,7 @@ void loop() {
   }
 
 
-  Serial.print("Disconnected from: ");
-  Serial.println(central.address());
+//  Serial.print("Disconnected from: ");
+//  Serial.println(central.address());
 
 }

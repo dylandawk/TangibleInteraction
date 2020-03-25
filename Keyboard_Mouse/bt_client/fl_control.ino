@@ -1,20 +1,36 @@
 //Sensor DEFINITIONS
 float gx,gy,gz,ax,ay,az;
 
+
+
 //Initial gyro values
 const int  offset_gx = 1; //IMU at resting for gyroscope gives value of -1 for x (this isn't used in code)
-const int  offset_gy = 4; //IMU at resting for gyroscope gives value of -4 for y
-const int offset_gz = 2; //IMU at resting for gyroscope gives value of -2 for z
+const int  offset_gy = 3; //IMU at resting for gyroscope gives value of -4 for y
+const int offset_gz = 0; //IMU at resting for gyroscope gives value of -2 for z
 
 //turns on LED when button is pressed, turns of when released
 void handleLED() {
   if (isPushPressed) {
     for (int i = 0; i < NUMPIXELS; i++) { // For each pixel...
-      pixels.setPixelColor(i, vals[AX], vals[AY], vals[AZ]);
+//      int pixelHue = map(vals[AX], -1, 1, 0, 65536);
+//      pixels.fill(pixels.ColorHSV(pixelHue));
+//      pixels.fill(vals[AX],vals[AY],vals[AZ]);
+      pixels.setPixelColor(0,0,0,100);
     }
   } else {
-    pixels.fill(0,0,0);
+    pixels.setPixelColor(0,0,0,0);
+    //Serial.println("Show pixels");
   }
+  pixels.show();
+}
+
+//
+void blinkLED(){
+  int currentTime = millis();
+  if(currentTime % 500 > 250) { //blink every half second
+     pixels.setPixelColor(0,100,0,0);
+     //Serial.println("Show pixels blink");
+  } else pixels.setPixelColor(0,0,0,100);
   pixels.show();
 }
 
@@ -62,16 +78,16 @@ void readPushButton() {
       currentState = reading;
       if (currentState == LOW) {
         /*Execute code when button pressed here*/
-        Serial.println("ON");
-        //Mouse.begin(); //move to bt_server;
-        hasMouseBegun = true;
+        //Serial.println("ON");
+        vals[BS] = (int16_t)ON;
+        isPushPressed = true;
         pixels.show();   // Send the updated pixel colors to the hardware.
       }
       else if (currentState == HIGH) {
         /*Execute code when button released here*/
-        Serial.println("OFF");
-        //Mouse.end();
-        hasMouseBegun = false;
+        //Serial.println("OFF");
+        isPushPressed = false;
+        vals[BS] = (int16_t)OFF;
         pixels.show();   // Send the updated pixel colors to the hardware.
       }
     }
