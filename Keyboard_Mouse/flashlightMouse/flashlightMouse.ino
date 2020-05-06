@@ -53,7 +53,7 @@ void setup() {
   pinMode(BLUE_PIN, OUTPUT);
   pinMode(PUSH_PIN, INPUT_PULLUP);
 
-  //Initialize pixel
+  //Initialize pixel  
   pixels.begin();
 }
 
